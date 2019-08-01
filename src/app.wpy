@@ -1,0 +1,98 @@
+<style lang="less">
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+}
+</style>
+
+<script>
+import wepy from 'wepy';
+import 'wepy-async-function';
+
+import { setStore } from 'wepy-redux';
+import configStore from './store';
+const store = configStore();
+setStore(store);
+
+export default class extends wepy.app {
+  config = {
+    pages: ['pages/index/index', 'pages/logs/index'],
+    window: {
+      backgroundTextStyle: 'light',
+      navigationBarBackgroundColor: '#fff',
+      navigationBarTitleText: 'WeChat',
+      navigationBarTextStyle: 'black'
+    },
+    tabBar: {
+      list: [
+        {
+          pagePath: 'pages/index/index',
+          text: '首页'
+        },
+        {
+          pagePath: 'pages/logs/index',
+          text: '日志'
+        }
+      ]
+    }
+  };
+
+  globalData = {
+    userInfo: null
+  };
+
+  constructor() {
+    super();
+    this.use('requestfix');
+  }
+
+  onLaunch() {
+    wx.cloud.init({
+      traceUser: true
+    });
+    wx.cloud.callFunction({
+      name: 'login',
+      success: res => {
+        console.log('test调用成功', res);
+      },
+      fail: err => {
+        console.log('test调用失败', err);
+      },
+      complete: res => {
+        wx.setStorageSync('openid', res.result.openid);
+      }
+    });
+    this.testAsync();
+  }
+
+  sleep(s) {
+    return new Promise((resolve, reject) => {
+      setTimeout(() => {
+        resolve('promise resolved');
+      }, s * 1000);
+    });
+  }
+
+  async testAsync() {
+    const data = await this.sleep(3);
+    console.log(data);
+  }
+
+  getUserInfo(cb) {
+    const that = this;
+    if (this.globalData.userInfo) {
+      return this.globalData.userInfo;
+    }
+    wepy.getUserInfo({
+      success(res) {
+        that.globalData.userInfo = res.userInfo;
+        cb && cb(res.userInfo);
+      }
+    });
+  }
+}
+</script>
